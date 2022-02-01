@@ -1,5 +1,4 @@
-﻿#nullable disable
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,15 +14,17 @@ namespace MyCompany.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        public EmployeesController(ApplicationDbContext context)
+        private readonly IRepository<Employee, int> EmployeeRepository;
+
+        public EmployeesController(IRepository<Employee, int> EmployeeRepository)
         {
-            _context = context;
+            this.EmployeeRepository = EmployeeRepository;
         }
 
         // GET: Employees
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Employees.ToListAsync());
+            return View(await EmployeeRepository.GetAll());
         }
 
         // GET: Employees/Details/5
@@ -34,8 +35,8 @@ namespace MyCompany.Controllers
                 return NotFound();
             }
 
-            var employee = await _context.Employees
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var employee = await EmployeeRepository
+                .GetById((int)id);
             if (employee == null)
             {
                 return NotFound();
@@ -55,12 +56,12 @@ namespace MyCompany.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName,department_id")] Employee employee)
+        public async Task<IActionResult> Create([Bind("Id,FirstName,LastName")] Employee employee)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(employee);
-                await _context.SaveChangesAsync();
+                await EmployeeRepository.Insert(employee);
+                await EmployeeRepository.Save();
                 return RedirectToAction(nameof(Index));
             }
             return View(employee);
@@ -74,7 +75,7 @@ namespace MyCompany.Controllers
                 return NotFound();
             }
 
-            var employee = await _context.Employees.FindAsync(id);
+            var employee = await EmployeeRepository.GetById((int)id);
             if (employee == null)
             {
                 return NotFound();
@@ -87,7 +88,7 @@ namespace MyCompany.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName,department_id")] Employee employee)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,FirstName,LastName")] Employee employee)
         {
             if (id != employee.Id)
             {
@@ -98,8 +99,8 @@ namespace MyCompany.Controllers
             {
                 try
                 {
-                    _context.Update(employee);
-                    await _context.SaveChangesAsync();
+                    await EmployeeRepository.Edit(employee);
+                    await EmployeeRepository.Save();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -125,8 +126,7 @@ namespace MyCompany.Controllers
                 return NotFound();
             }
 
-            var employee = await _context.Employees
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var employee = await EmployeeRepository.GetById((int)id);
             if (employee == null)
             {
                 return NotFound();
@@ -140,9 +140,8 @@ namespace MyCompany.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var employee = await _context.Employees.FindAsync(id);
-            _context.Employees.Remove(employee);
-            await _context.SaveChangesAsync();
+            await EmployeeRepository.Delete(id);
+            await EmployeeRepository.Save();
             return RedirectToAction(nameof(Index));
         }
 
